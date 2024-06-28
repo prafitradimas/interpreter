@@ -17,44 +17,26 @@ func TestVarStatement(t *testing.T) {
 	`
 
 	lexr := lexer.New(inputs)
-	prog := parser.New(lexr)
-	program := prog.Parse()
+	parser := parser.New(lexr)
+
+	program := parser.Parse()
+	checkParserErrors(t, parser)
 
 	if program == nil {
 		t.Fatal("Parse() returns nil")
 	}
 
 	if len(program.Statements) != 3 {
-		t.Fatalf("Invalid `program.Statements` length, expect: %d found: %d", 3, len(program.Statements))
+		t.Fatalf("program.Statements does not contain 3 statements. got=%d", len(program.Statements))
 	}
 
-	testData := []ast.VarStatement{
-		{
-			Token: token.Token{Type: token.VAR, Literal: "var"},
-			Name: &ast.Identifier{
-				Token: token.Token{Type: token.IDENT, Literal: "foo"},
-				Value: "5",
-			},
-		},
-		{
-			Token: token.Token{Type: token.VAR, Literal: "var"},
-			Name: &ast.Identifier{
-				Token: token.Token{Type: token.IDENT, Literal: "bar"},
-				Value: "10",
-			},
-		},
-		{
-			Token: token.Token{Type: token.VAR, Literal: "var"},
-			Name: &ast.Identifier{
-				Token: token.Token{Type: token.IDENT, Literal: "bazz"},
-				Value: "42069",
-			},
-		},
-	}
+	testData := []struct {
+		expectedIdentifier string
+	}{{"foo"}, {"bar"}, {"bazz"}}
 
 	for i, td := range testData {
 		statement := program.Statements[i]
-		if !expectVarStatement(t, statement, td.Name.Token.Literal, td.Name.Value) {
+		if !expectVarStatement(t, statement, td.expectedIdentifier, td.expectedIdentifier) {
 			return
 		}
 	}
@@ -77,15 +59,28 @@ func expectVarStatement(t *testing.T, statement ast.Statement, name string, valu
 		return false
 	}
 
-	if varStatement.Name.Token.Literal != name {
+	if varStatement.Name.TokenLiteral() != name {
 		t.Errorf("Invalid Identifier Token Literal, expect: %s found: %s", name, varStatement.Name.Token.Literal)
 		return false
 	}
 
-	if varStatement.Name.Value != value {
+	if varStatement.Name.TokenLiteral() != name {
 		t.Errorf("Invalid Identifier Value, expect: %s found: %s", value, varStatement.Name.Value)
 		return false
 	}
 
 	return true
+}
+
+func checkParserErrors(t *testing.T, parser *parser.Parser) {
+	errs := parser.Errors()
+	if len(errs) == 0 {
+		return
+	}
+
+	t.Errorf("Found %d errors while parsing\n", len(errs))
+	for _, msg := range errs {
+		t.Errorf("parser error: %q\n", msg)
+	}
+	t.FailNow()
 }

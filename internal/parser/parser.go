@@ -1,24 +1,39 @@
 package parser
 
 import (
+	"fmt"
+
 	"github.com/prafitradimas/interpreter/internal/ast"
 	"github.com/prafitradimas/interpreter/internal/lexer"
 	"github.com/prafitradimas/interpreter/internal/token"
 )
 
 type Parser struct {
-	lexer *lexer.Lexer
-
+	lexer        *lexer.Lexer
 	currentToken token.Token
 	peekToken    token.Token
+	errors       []string
 }
 
 func New(lexr *lexer.Lexer) *Parser {
 	parser := Parser{
-		lexer: lexr,
+		lexer:  lexr,
+		errors: []string{},
 	}
 
+	parser.nextToken()
+	parser.nextToken()
+
 	return &parser
+}
+
+func (ps *Parser) peekError(_tokenType token.TokenType) {
+	msg := fmt.Sprintf("expected next token to be %s, got %s instead", _tokenType, ps.peekToken.Type)
+	ps.errors = append(ps.errors, msg)
+}
+
+func (ps *Parser) Errors() []string {
+	return ps.errors
 }
 
 func (ps *Parser) nextToken() {
@@ -27,9 +42,8 @@ func (ps *Parser) nextToken() {
 }
 
 func (ps *Parser) Parse() *ast.Program {
-	program := &ast.Program{
-		Statements: []ast.Statement{},
-	}
+	program := &ast.Program{}
+	program.Statements = []ast.Statement{}
 
 	for ps.currentToken.Type != token.EOF {
 		statement := ps.parseStatement()
@@ -53,39 +67,37 @@ func (ps *Parser) parseStatement() ast.Statement {
 }
 
 func (ps *Parser) parseVarStatement() ast.Statement {
-	statement := &ast.VarStatement{
-		Token: ps.currentToken,
-		Name:  &ast.Identifier{},
-	}
+	statement := &ast.VarStatement{Token: ps.currentToken}
 
-	// next token should be identifier
-	if ps.peekToken.Type != token.IDENT {
+	if !ps.expectNextToken(token.IDENT) {
 		return nil
 	}
 
-	// get the variable's name
-	ps.nextToken()
-	statement.Name.Token = ps.currentToken
+	statement.Name = &ast.Identifier{Token: ps.currentToken, Value: ps.currentToken.Literal}
 
-	// next token should be `=`
-	if ps.peekToken.Type != token.ASSIGN {
+	if !ps.expectNextToken(token.ASSIGN) {
 		return nil
 	}
 
-	ps.nextToken()
-	statement.Name.Value = ps.peekToken.Literal
-
-	for ps.currentToken.Type != token.SEMICOLON {
+	// TODO:
+	// skipping expression until encounter semicolon
+	for !ps.expectCurrentToken(token.SEMICOLON) {
 		ps.nextToken()
 	}
 
 	return statement
 }
 
-func (ps *Parser) expectCurrentToken(_token token.TokenType) bool {
-	return ps.currentToken.Type == _token
+func (ps *Parser) expectCurrentToken(_tokenType token.TokenType) bool {
+	return ps.currentToken.Type == _tokenType
 }
 
-func (ps *Parser) expectNextToken(_token token.TokenType) bool {
-	return ps.peekToken.Type == _token
+func (ps *Parser) expectNextToken(_tokenType token.TokenType) bool {
+	if ps.peekToken.Type == _tokenType {
+		ps.nextToken()
+		return true
+	}
+
+	ps.peekError(_tokenType)
+	return false
 }
