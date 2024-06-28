@@ -14,7 +14,9 @@ func NewIdent(token token.Token, val string) *Identifier {
 	}
 	return &ident
 }
-func (ident *Identifier) expressionNode() {}
-func (ident *Identifier) TokenLiteral() string {
-	return ident.Token.Literal
+
+func (ident *Identifier) expressionNode()      {}
+func (ident *Identifier) TokenLiteral() string { return ident.Token.Literal }
+func (ident *Identifier) String() string {
+	return ident.Value
 }

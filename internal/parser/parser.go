@@ -61,6 +61,8 @@ func (ps *Parser) parseStatement() ast.Statement {
 	switch ps.currentToken.Type {
 	case token.VAR:
 		return ps.parseVarStatement()
+	case token.RETURN:
+		return ps.parseReturnStatement()
 	default:
 		return nil
 	}
@@ -100,4 +102,15 @@ func (ps *Parser) expectNextToken(_tokenType token.TokenType) bool {
 
 	ps.peekError(_tokenType)
 	return false
+}
+
+func (ps *Parser) parseReturnStatement() ast.Statement {
+	stmt := &ast.ReturnStatement{Token: ps.currentToken}
+	ps.nextToken()
+
+	for !ps.expectCurrentToken(token.SEMICOLON) {
+		ps.nextToken()
+	}
+
+	return stmt
 }

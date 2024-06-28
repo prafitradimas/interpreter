@@ -9,7 +9,7 @@ import (
 	"github.com/prafitradimas/interpreter/internal/token"
 )
 
-func TestVarStatement(t *testing.T) {
+func TestVarStatements(t *testing.T) {
 	inputs := `
 	var foo = 5;
 	var bar = 10;
@@ -39,6 +39,63 @@ func TestVarStatement(t *testing.T) {
 		if !expectVarStatement(t, statement, td.expectedIdentifier, td.expectedIdentifier) {
 			return
 		}
+	}
+}
+
+func TestReturnStatements(t *testing.T) {
+	inputs := `
+	return 5;
+	return 10;
+	return 42069;
+	`
+
+	lexr := lexer.New(inputs)
+	ps := parser.New(lexr)
+
+	program := ps.Parse()
+	checkParserErrors(t, ps)
+
+	if program == nil {
+		t.Fatal("Parse() returns nil")
+	}
+
+	if len(program.Statements) != 3 {
+		t.Fatalf("program.Statements does not contain 3 statements. got=%d", len(program.Statements))
+	}
+
+	for _, stmt := range program.Statements {
+		retStmt, ok := stmt.(*ast.ReturnStatement)
+		if !ok {
+			t.Errorf("Invalid Statement, expect `*ast.ReturnStatement`. got=%T", stmt)
+			continue
+		}
+
+		if retStmt.TokenLiteral() != "return" {
+			t.Errorf("Invalid Statement, expect `*ast.ReturnStatement`. got=%s", retStmt.TokenLiteral())
+			continue
+		}
+	}
+}
+
+func TestString(t *testing.T) {
+	program := &ast.Program{
+		Statements: []ast.Statement{
+			&ast.VarStatement{
+				Token: token.Token{Type: token.VAR, Literal: "var"},
+				Name: &ast.Identifier{
+					Token: token.Token{Type: token.IDENT, Literal: "foo"},
+					Value: "foo",
+				},
+				Value: &ast.Identifier{
+					Token: token.Token{Type: token.IDENT, Literal: "bar"},
+					Value: "bar",
+				},
+			},
+		},
+	}
+
+	if program.String() != "var foo = bar;" {
+		t.Errorf("program.String() wrong. got=%s", program.String())
 	}
 }
 
